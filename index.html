@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор квитанции</title>
+
+    <!-- ШРИФТ С ПОДДЕРЖКОЙ КИРИЛЛИЦЫ -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     
     <!-- Библиотеки -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -11,74 +14,55 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
+        body { font-family: 'Roboto', sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
         .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h2 { color: #333; text-align: center; }
         label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
-        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .error-msg { color: red; font-size: 0.9em; display: none; margin-top: 5px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
         button { margin-top: 25px; padding: 15px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
         button:hover { background: #218838; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+
         #qr-container, #pdf-template { display: none; } 
         
-        /* Стили для шаблона PDF */
         #pdf-template {
             width: 210mm;
             min-height: 297mm;
             padding: 20mm;
-            margin: 0;
             background: white;
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             font-size: 12pt;
             line-height: 1.5;
         }
+
         .pdf-header { font-size: 18pt; font-weight: bold; margin-bottom: 10px; }
-        .pdf-subheader { font-size: 10pt; color: #666; margin-bottom: 20px; }
         .pdf-section { margin-bottom: 15px; }
         .pdf-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
         .pdf-label { font-weight: bold; }
         .pdf-value { flex: 1; margin-left: 10px; }
-        .pdf-qr-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 30px; }
-        .pdf-qr-info { flex: 1; }
         .pdf-qr-code { width: 60mm; height: 60mm; }
-        .pdf-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; border-top: 1px solid #000; padding-top: 10px; }
-        .highlight { background: #f0f0f0; padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Оплата обучения</h2>
-    <p style="text-align: center; color: #666;">Заполните данные и откройте квитанцию с QR-кодом в новой вкладке.</p>
 
     <form id="payment-form">
         <label>Фамилия:</label>
-        <input type="text" name="surname" placeholder="Иванов" required>
+        <input type="text" name="surname" required>
 
         <label>Имя:</label>
-        <input type="text" name="name" placeholder="Иван" required>
+        <input type="text" name="name" required>
 
         <label>Отчество:</label>
-        <input type="text" name="patronymic" placeholder="Иванович">
+        <input type="text" name="patronymic">
 
-        <label>Назначение платежа: <span id="char-count" class="counter">0/120</span></label>
-        <textarea name="purpose" id="purpose-input" rows="2" placeholder="Оплата за обучение вождению (кат. B)" maxlength="120" required></textarea>
-        <div id="length-error" class="error-msg">Слишком длинное назначение платежа! Сократите до 120 символов.</div>
-        <div class="hint">Важно: Для работы QR-кода текст должен быть кратким.</div>
+        <label>Назначение платежа:</label>
+        <textarea name="purpose" maxlength="120" required></textarea>
 
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1;">
-                <label>Сумма (руб):</label>
-                <input type="number" name="amount_rub" value="1000" min="0" required>
-            </div>
-            <div style="flex: 1;">
-                <label>Копейки:</label>
-                <input type="number" name="amount_kop" value="0" min="0" max="99">
-            </div>
-        </div>
+        <label>Сумма (руб):</label>
+        <input type="number" name="amount_rub" value="1000" required>
 
-        <!-- Реквизиты получателя (скрытые) -->
         <input type="hidden" name="recipient_name" value='ООО "АВТОШКОЛА № 1"'>
         <input type="hidden" name="inn" value="2312137727">
         <input type="hidden" name="kpp" value="231201001">
@@ -87,144 +71,60 @@
         <input type="hidden" name="bik" value="040349602">
         <input type="hidden" name="kor_account" value="30101810100000000602">
 
-        <button type="submit" id="submit-btn">📄 Открыть квитанцию в новой вкладке</button>
+        <button type="submit">Создать PDF</button>
     </form>
 </div>
 
-<!-- Скрытые блоки -->
-<div id="qr-container"></div>
 <div id="pdf-template"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    if (typeof qrcode === 'undefined') {
-        alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте подключение к интернету.");
-        return;
-    }
+document.getElementById('payment-form').addEventListener('submit', function(e) {
+    e.preventDefault();
 
-    const purposeInput = document.getElementById('purpose-input');
-    const charCount = document.getElementById('char-count');
-    const lengthError = document.getElementById('length-error');
+    const data = Object.fromEntries(new FormData(this).entries());
 
-    purposeInput.addEventListener('input', function() {
-        const len = this.value.length;
-        charCount.textContent = `${len}/120`;
-        if (len > 120) {
-            lengthError.style.display = 'block';
-            this.style.borderColor = 'red';
-        } else {
-            lengthError.style.display = 'none';
-            this.style.borderColor = '#ccc';
-        }
+    const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|Purpose=${data.purpose}|Sum=${data.amount_rub}.00`;
+
+    const qr = qrcode(0, 'M');
+    qr.addData(qrData);
+    qr.make();
+
+    const qrImage = qr.createDataURL(4, 2);
+
+    const template = document.getElementById('pdf-template');
+
+    template.innerHTML = `
+        <div class="pdf-header">Квитанция на оплату</div>
+
+        <div class="pdf-section">
+            <div class="pdf-row"><span class="pdf-label">Получатель:</span><span class="pdf-value">${data.recipient_name}</span></div>
+            <div class="pdf-row"><span class="pdf-label">ИНН:</span><span class="pdf-value">${data.inn}</span></div>
+            <div class="pdf-row"><span class="pdf-label">Банк:</span><span class="pdf-value">${data.bank_name}</span></div>
+        </div>
+
+        <div class="pdf-section">
+            <div class="pdf-row"><span class="pdf-label">Плательщик:</span><span class="pdf-value">${data.surname} ${data.name} ${data.patronymic || ''}</span></div>
+            <div class="pdf-row"><span class="pdf-label">Назначение:</span><span class="pdf-value">${data.purpose}</span></div>
+            <div class="pdf-row"><span class="pdf-label">Сумма:</span><span class="pdf-value">${data.amount_rub} руб.</span></div>
+        </div>
+
+        <img src="${qrImage}" class="pdf-qr-code">
+    `;
+
+    html2canvas(template, {
+        scale: 2,
+        useCORS: true
+    }).then(canvas => {
+
+        const imgData = canvas.toDataURL('image/png');
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.addImage(imgData, 'PNG', 0, 0, 210, 297);
+
+        doc.output('dataurlnewwindow');
     });
-
-    document.getElementById('payment-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        if (purposeInput.value.length > 120) {
-            alert("Пожалуйста, сократите назначение платежа до 120 символов!");
-            return;
-        }
-
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData.entries());
-
-        const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
-        
-        const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
-
-        const byteLength = new TextEncoder().encode(qrData).length;
-        console.log("Длина строки QR (символы):", qrData.length);
-        console.log("Длина строки QR (байты):", byteLength);
-
-        const qrContainer = document.getElementById('qr-container');
-        qrContainer.innerHTML = '';
-
-        try {
-            // Создаем QR-код
-            const qr = qrcode(0, 'M');
-            qr.addData(qrData);
-            qr.make();
-
-            const qrImageData = qr.createDataURL(4, 2);
-
-            if (!qrImageData) {
-                alert("Не удалось создать изображение QR-кода.");
-                return;
-            }
-
-            generateAndOpenPDF(qrImageData, data);
-            
-        } catch (err) {
-            console.error(err);
-            let errorMsg = "Ошибка при создании квитанции.";
-            if (err.message && err.message.includes("length")) {
-                errorMsg = `Данные слишком длинные для QR-кода.\n\nФактическая длина: ${byteLength} байт\nМаксимальная вместимость: ~2000 байт\n\nПожалуйста, сократите назначение платежа.`;
-            }
-            alert(errorMsg + "\n\nДетали: " + (err.message || err));
-        }
-    });
-
-    function generateAndOpenPDF(qrImageSrc, data) {
-        // Создаем HTML-шаблон
-        const template = document.getElementById('pdf-template');
-        template.innerHTML = `
-            <div class="pdf-header">Квитанция на оплату</div>
-            <div class="pdf-subheader">(Сформировано автоматически)</div>
-            
-            <div class="pdf-section">
-                <div class="pdf-row"><span class="pdf-label">Получатель:</span><span class="pdf-value">${data.recipient_name}</span></div>
-                <div class="pdf-row"><span class="pdf-label">ИНН:</span><span class="pdf-value">${data.inn}</span><span class="pdf-label" style="margin-left: 20px;">КПП:</span><span class="pdf-value">${data.kpp}</span></div>
-                <div class="pdf-row"><span class="pdf-label">Р/с:</span><span class="pdf-value">${data.account}</span></div>
-                <div class="pdf-row"><span class="pdf-label">Банк:</span><span class="pdf-value">${data.bank_name}</span></div>
-                <div class="pdf-row"><span class="pdf-label">БИК:</span><span class="pdf-value">${data.bik}</span><span class="pdf-label" style="margin-left: 20px;">К/с:</span><span class="pdf-value">${data.kor_account}</span></div>
-            </div>
-
-            <div class="pdf-section highlight">
-                <div class="pdf-row"><span class="pdf-label">Плательщик:</span><span class="pdf-value">${data.surname} ${data.name} ${data.patronymic || ''}</span></div>
-                <div class="pdf-row"><span class="pdf-label">Назначение:</span><span class="pdf-value">${data.purpose}</span></div>
-                <div class="pdf-row"><span class="pdf-label">Сумма:</span><span class="pdf-value">${data.amount_rub} руб. ${data.amount_kop} коп.</span></div>
-            </div>
-
-            <div class="pdf-qr-section">
-                <div class="pdf-qr-info">
-                    <div style="font-size: 14pt; font-weight: bold; margin-bottom: 10px;">Отсканируйте для оплаты</div>
-                    <img src="${qrImageSrc}" class="pdf-qr-code" alt="QR Code">
-                </div>
-            </div>
-
-            <div class="pdf-footer">
-                <div style="display: flex; justify-content: space-between;">
-                    <div>Подпись плательщика: ___________________</div>
-                    <div>Дата: "__.__.20__ г."</div>
-                </div>
-            </div>
-        `;
-
-        // Конвертируем HTML в PDF
-        html2canvas(template, { scale: 2 }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 297; // A4 height in mm
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            
-            // Открываем PDF в новой вкладке
-            const pdfBlob = doc.output('blob');
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            window.open(pdfUrl, '_blank');
-            
-            setTimeout(() => {
-                URL.revokeObjectURL(pdfUrl);
-            }, 60000);
-        });
-    }
 });
 </script>
 
