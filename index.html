@@ -5,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор квитанции</title>
     
-    <!-- Библиотека для PDF -->
+    <!-- Библиотеки -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- Плагин для поддержки кириллицы в jsPDF -->
-    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-    
-    <!-- Библиотека для QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
     <style>
@@ -24,9 +20,30 @@
         button { margin-top: 25px; padding: 15px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
         button:hover { background: #218838; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        #qr-container { display: none; } 
-        .hint { font-size: 0.85em; color: #777; margin-top: 5px; }
-        .counter { float: right; font-size: 0.8em; color: #999; }
+        #qr-container, #pdf-template { display: none; } 
+        
+        /* Стили для шаблона PDF */
+        #pdf-template {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0;
+            background: white;
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        .pdf-header { font-size: 18pt; font-weight: bold; margin-bottom: 10px; }
+        .pdf-subheader { font-size: 10pt; color: #666; margin-bottom: 20px; }
+        .pdf-section { margin-bottom: 15px; }
+        .pdf-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .pdf-label { font-weight: bold; }
+        .pdf-value { flex: 1; margin-left: 10px; }
+        .pdf-qr-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 30px; }
+        .pdf-qr-info { flex: 1; }
+        .pdf-qr-code { width: 60mm; height: 60mm; }
+        .pdf-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; border-top: 1px solid #000; padding-top: 10px; }
+        .highlight { background: #f0f0f0; padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -74,8 +91,9 @@
     </form>
 </div>
 
-<!-- Скрытый блок для генерации QR -->
+<!-- Скрытые блоки -->
 <div id="qr-container"></div>
+<div id="pdf-template"></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -149,56 +167,63 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function generateAndOpenPDF(qrImageSrc, data) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        // Создаем HTML-шаблон
+        const template = document.getElementById('pdf-template');
+        template.innerHTML = `
+            <div class="pdf-header">Квитанция на оплату</div>
+            <div class="pdf-subheader">(Сформировано автоматически)</div>
+            
+            <div class="pdf-section">
+                <div class="pdf-row"><span class="pdf-label">Получатель:</span><span class="pdf-value">${data.recipient_name}</span></div>
+                <div class="pdf-row"><span class="pdf-label">ИНН:</span><span class="pdf-value">${data.inn}</span><span class="pdf-label" style="margin-left: 20px;">КПП:</span><span class="pdf-value">${data.kpp}</span></div>
+                <div class="pdf-row"><span class="pdf-label">Р/с:</span><span class="pdf-value">${data.account}</span></div>
+                <div class="pdf-row"><span class="pdf-label">Банк:</span><span class="pdf-value">${data.bank_name}</span></div>
+                <div class="pdf-row"><span class="pdf-label">БИК:</span><span class="pdf-value">${data.bik}</span><span class="pdf-label" style="margin-left: 20px;">К/с:</span><span class="pdf-value">${data.kor_account}</span></div>
+            </div>
 
-        // Используем встроенный шрифт с поддержкой кириллицы
-        // jsPDF имеет встроенную поддержку некоторых кириллических символов
-        // Для полной поддержки нужно использовать custom font, но для базовых нужд хватит и этого
-        
-        // Заголовок
-        doc.setFontSize(18);
-        doc.text("Квитанция на оплату", 20, 20);
-        doc.setFontSize(10);
-        doc.text("(Сформировано автоматически)", 20, 26);
+            <div class="pdf-section highlight">
+                <div class="pdf-row"><span class="pdf-label">Плательщик:</span><span class="pdf-value">${data.surname} ${data.name} ${data.patronymic || ''}</span></div>
+                <div class="pdf-row"><span class="pdf-label">Назначение:</span><span class="pdf-value">${data.purpose}</span></div>
+                <div class="pdf-row"><span class="pdf-label">Сумма:</span><span class="pdf-value">${data.amount_rub} руб. ${data.amount_kop} коп.</span></div>
+            </div>
 
-        // Реквизиты получателя
-        doc.setFontSize(12);
-        let y = 40;
-        const lineHeight = 7;
+            <div class="pdf-qr-section">
+                <div class="pdf-qr-info">
+                    <div style="font-size: 14pt; font-weight: bold; margin-bottom: 10px;">Отсканируйте для оплаты</div>
+                    <img src="${qrImageSrc}" class="pdf-qr-code" alt="QR Code">
+                </div>
+            </div>
 
-        doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += lineHeight;
-        doc.text(`ИНН: ${data.inn} | КПП: ${data.kpp}`, 20, y); y += lineHeight;
-        doc.text(`Р/с: ${data.account}`, 20, y); y += lineHeight;
-        doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
-        doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
+            <div class="pdf-footer">
+                <div style="display: flex; justify-content: space-between;">
+                    <div>Подпись плательщика: ___________________</div>
+                    <div>Дата: "__.__.20__ г."</div>
+                </div>
+            </div>
+        `;
 
-        // Плательщик
-        doc.setFillColor(240, 240, 240);
-        doc.rect(20, y - 5, 170, 25, 'F');
-        doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
-        doc.text(`Назначение: ${data.purpose}`, 25, y + 12);
-        doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 25, y + 19);
-        
-        y += 35;
-
-        // Вставляем QR-код
-        doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
-        doc.text("Отсканируйте для оплаты", 125, 105);
-
-        // Подпись и дата внизу
-        doc.line(20, 260, 190, 260);
-        doc.text("Подпись плательщика: ___________________", 20, 270);
-        doc.text("Дата: __.__.20__ г.", 120, 270);
-
-        // Открываем PDF в новой вкладке
-        const pdfBlob = doc.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        window.open(pdfUrl, '_blank');
-        
-        setTimeout(() => {
-            URL.revokeObjectURL(pdfUrl);
-        }, 60000);
+        // Конвертируем HTML в PDF
+        html2canvas(template, { scale: 2 }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            
+            // Открываем PDF в новой вкладке
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            window.open(pdfUrl, '_blank');
+            
+            setTimeout(() => {
+                URL.revokeObjectURL(pdfUrl);
+            }, 60000);
+        });
     }
 });
 </script>
