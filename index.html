@@ -2,42 +2,56 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор квитанции</title>
+    
+    <!-- Подключаем библиотеку для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <!-- Подключаем ПРАВИЛЬНУЮ библиотеку для QR-кодов (qrcodejs) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        label { display: block; margin-top: 10px; }
-        input, textarea { width: 300px; padding: 5px; }
-        button { margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background: #45a049; }
-        #qr-container { margin-top: 20px; }
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        h2 { color: #333; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { margin-top: 25px; padding: 15px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background: #218838; }
+        /* Скрываем контейнер QR, он нужен только для генерации, показывать его на странице не обязательно */
+        #qr-container { display: none; } 
     </style>
 </head>
 <body>
 
 <h2>Заполните данные для квитанции</h2>
+<p style="font-size: 0.9em; color: #666;">Заполните форму ниже, чтобы скачать готовую квитанцию с QR-кодом для оплаты.</p>
 
 <form id="payment-form">
     <label>Фамилия:</label>
-    <input type="text" name="surname" required>
+    <input type="text" name="surname" placeholder="Иванов" required>
 
     <label>Имя:</label>
-    <input type="text" name="name" required>
+    <input type="text" name="name" placeholder="Иван" required>
 
     <label>Отчество:</label>
-    <input type="text" name="patronymic">
+    <input type="text" name="patronymic" placeholder="Иванович">
 
     <label>Назначение платежа:</label>
-    <textarea name="purpose" rows="2" required></textarea>
+    <textarea name="purpose" rows="2" placeholder="Оплата обучения вождению" required></textarea>
 
-    <label>Сумма (руб):</label>
-    <input type="number" name="amount_rub" value="0" min="0">
+    <div style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+            <label>Сумма (руб):</label>
+            <input type="number" name="amount_rub" value="1000" min="0" required>
+        </div>
+        <div style="flex: 1;">
+            <label>Копейки:</label>
+            <input type="number" name="amount_kop" value="0" min="0" max="99">
+        </div>
+    </div>
 
-    <label>Копейки:</label>
-    <input type="number" name="amount_kop" value="0" min="0" max="99">
-
-    <!-- Скрытые поля с реквизитами получателя -->
+    <!-- Скрытые поля с реквизитами получателя (можно менять здесь) -->
     <input type="hidden" name="recipient_name" value='ООО "АВТОШКОЛА № 1"'>
     <input type="hidden" name="inn" value="2312137727">
     <input type="hidden" name="kpp" value="231201001">
@@ -46,70 +60,96 @@
     <input type="hidden" name="bik" value="040349602">
     <input type="hidden" name="kor_account" value="30101810100000000602">
 
-    <button type="submit">Скачать PDF с QR-кодом</button>
+    <button type="submit">📥 Скачать PDF с QR-кодом</button>
 </form>
 
+<!-- Скрытый блок для генерации QR -->
 <div id="qr-container"></div>
 
 <script>
-document.getElementById('payment-form').addEventListener('submit', async function(e) {
+document.getElementById('payment-form').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
 
     // Формируем строку для QR-кода по ГОСТ Р 56042-2014
-    const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
+    // Важно: сумма должна быть в формате "1000.00"
+    const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
+    
+    const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
 
-    // Генерируем QR-код
+    // Очищаем предыдущий QR
     const qrContainer = document.getElementById('qr-container');
-    qrContainer.innerHTML = ''; // Очищаем предыдущий QR
+    qrContainer.innerHTML = '';
 
-    await QRCode.toCanvas(qrContainer, qrData, {
-        width: 200,
-        margin: 2,
-        color: {
-            dark: "#000000",
-            light: "#ffffff"
-        }
+    // Генерируем QR-код с помощью библиотеки qrcodejs
+    // Эта библиотека создает canvas автоматически внутри div
+    const qrcodeObj = new QRCode(qrContainer, {
+        text: qrData,
+        width: 256,
+        height: 256,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
     });
 
-    // Получаем изображение QR как Data URL
-    const canvas = qrContainer.querySelector('canvas');
-    const qrImageData = canvas.toDataURL('image/png');
+    // Ждем немного, пока QR отрендерится (библиотека работает асинхронно внутри)
+    setTimeout(() => {
+        const canvas = qrContainer.querySelector('canvas');
+        
+        if (!canvas) {
+            alert("Ошибка генерации QR-кода. Попробуйте еще раз.");
+            return;
+        }
 
-    // Создаём PDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+        const qrImageData = canvas.toDataURL('image/png');
 
-    // Заголовок
-    doc.setFontSize(16);
-    doc.text("Квитанция на оплату", 20, 20);
+        // Создаём PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-    // Реквизиты получателя
-    doc.setFontSize(12);
-    let y = 40;
-    doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += 10;
-    doc.text(`ИНН: ${data.inn}`, 20, y); y += 10;
-    doc.text(`КПП: ${data.kpp}`, 20, y); y += 10;
-    doc.text(`Р/с: ${data.account}`, 20, y); y += 10;
-    doc.text(`Банк: ${data.bank_name}`, 20, y); y += 10;
-    doc.text(`БИК: ${data.bik}`, 20, y); y += 10;
-    doc.text(`К/с: ${data.kor_account}`, 20, y); y += 20;
+        // Заголовок
+        doc.setFontSize(18);
+        doc.text("Квитанция на оплату", 20, 20);
+        doc.setFontSize(10);
+        doc.text("(Сформировано автоматически)", 20, 26);
 
-    // Плательщик
-    doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 20, y); y += 10;
-    doc.text(`Назначение: ${data.purpose}`, 20, y); y += 10;
-    doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 20, y); y += 30;
+        // Реквизиты получателя
+        doc.setFontSize(12);
+        let y = 40;
+        const lineHeight = 7;
 
-    // Вставляем QR-код
-    doc.addImage(qrImageData, 'PNG', 120, 40, 50, 50);
+        doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += lineHeight;
+        doc.text(`ИНН: ${data.inn} | КПП: ${data.kpp}`, 20, y); y += lineHeight;
+        doc.text(`Р/с: ${data.account}`, 20, y); y += lineHeight;
+        doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
+        doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
 
-    // Подпись и дата
-    doc.text("Подпись: _________________________ Дата: \"__\" __________ 20__ г.", 20, 250);
+        // Плательщик
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, y - 5, 170, 25, 'F');
+        doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
+        doc.text(`Назначение: ${data.purpose}`, 25, y + 12);
+        doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 25, y + 19);
+        
+        y += 35;
 
-    // Сохраняем PDF
-    doc.save('kvitanciya.pdf');
+        // Вставляем QR-код справа
+        // addImage(изображение, формат, x, y, ширина, высота)
+        doc.addImage(qrImageData, 'PNG', 120, 40, 60, 60);
+        
+        doc.text("Отсканируйте для оплаты", 125, 105);
+
+        // Подпись и дата внизу
+        doc.line(20, 260, 190, 260);
+        doc.text("Подпись плательщика: ___________________", 20, 270);
+        doc.text("Дата: __.__.20__ г.", 120, 270);
+
+        // Сохраняем PDF
+        doc.save(`Kvitanciya_${data.surname}.pdf`);
+        
+    }, 100); // Небольшая задержка, чтобы QR успел отрисоваться
 });
 </script>
 
