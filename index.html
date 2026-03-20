@@ -8,7 +8,7 @@
     <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- Локальная библиотека для QR-кодов (теперь работает без интернета после загрузки) -->
+    <!-- Локальная библиотека для QR-кодов -->
     <script src="qrcode.min.js"></script>
 
     <style>
@@ -63,7 +63,8 @@
         <input type="hidden" name="inn" value="2312137727">
         <input type="hidden" name="kpp" value="231201001">
         <input type="hidden" name="account" value="40702810530000120382">
-        <input type="hidden" name="bank_name" value="КРАСНОДАРСКОЕ ОТДЕЛЕНИЕ N8619 ПАО СБЕРБАНК">
+        <!-- СОКРАЩЕННОЕ НАЗВАНИЕ БАНКА -->
+        <input type="hidden" name="bank_name" value="ПАО СБЕРБАНК">
         <input type="hidden" name="bik" value="040349602">
         <input type="hidden" name="kor_account" value="30101810100000000602">
 
@@ -77,7 +78,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Проверка: загрузилась ли библиотека?
     if (typeof QRCode === 'undefined') {
         alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте, что файл qrcode.min.js лежит рядом с index.html.");
         return;
@@ -113,6 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
         
         const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
+
+        // Показываем длину строки для отладки (можно убрать потом)
+        console.log("Длина строки QR:", qrData.length);
+        console.log("Строка QR:", qrData);
 
         const qrContainer = document.getElementById('qr-container');
         qrContainer.innerHTML = '';
@@ -154,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(err);
             let errorMsg = "Ошибка при создании квитанции.";
             if (err.message.includes("code length overflow")) {
-                errorMsg = "Данные слишком длинные для QR-кода.\nПожалуйста, сократите назначение платежа.";
+                errorMsg = "Данные слишком длинные для QR-кода.\nПожалуйста, сократите назначение платежа или проверьте реквизиты.";
             }
             alert(errorMsg + "\n\nДетали: " + err.message);
         }
