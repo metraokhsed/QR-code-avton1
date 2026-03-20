@@ -8,7 +8,10 @@
     <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- Библиотека для QR-кодов с поддержкой UTF-8 -->
+    <!-- Подключаем шрифт с поддержкой кириллицы -->
+    <script src="https://cdn.jsdelivr.net/npm/@fontsource/roboto@4.5.8/files/cyrillic-400-normal.woff2"></script>
+    
+    <!-- Библиотека для QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
     <style>
@@ -75,7 +78,25 @@
 <div id="qr-container"></div>
 
 <script>
+// Глобальная переменная для шрифта
+let customFont = null;
+
+// Загружаем шрифт при старте страницы
+async function loadCustomFont() {
+    try {
+        const response = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/roboto@4.5.8/files/cyrillic-400-normal.woff2');
+        const fontData = await response.arrayBuffer();
+        customFont = btoa(String.fromCharCode(...new Uint8Array(fontData)));
+        console.log("Шрифт загружен успешно");
+    } catch (error) {
+        console.error("Ошибка загрузки шрифта:", error);
+        alert("Не удалось загрузить шрифт с поддержкой кириллицы. Текст может отображаться некорректно.");
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем шрифт
+    loadCustomFont();
     
     if (typeof qrcode === 'undefined') {
         alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте подключение к интернету.");
@@ -101,6 +122,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('payment-form').addEventListener('submit', function(e) {
         e.preventDefault();
 
+        if (!customFont) {
+            alert("Шрифт еще не загрузился. Подождите немного и попробуйте снова.");
+            return;
+        }
+
         if (purposeInput.value.length > 120) {
             alert("Пожалуйста, сократите назначение платежа до 120 символов!");
             return;
@@ -122,12 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Создаем QR-код
-            const qr = qrcode(0, 'M'); // 0 = автоподбор размера, M = средний уровень коррекции
+            const qr = qrcode(0, 'M');
             qr.addData(qrData);
             qr.make();
 
-            // Получаем изображение QR-кода
-            const qrImageData = qr.createDataURL(4, 2); // масштаб 4, отступ 2
+            const qrImageData = qr.createDataURL(4, 2);
 
             if (!qrImageData) {
                 alert("Не удалось создать изображение QR-кода.");
@@ -149,6 +174,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function generateAndOpenPDF(qrImageSrc, data) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
+
+        // Добавляем пользовательский шрифт с поддержкой кириллицы
+        doc.addFileToVFS("Roboto-Cyrillic.ttf", customFont);
+        doc.addFont("Roboto-Cyrillic.ttf", "Roboto", "normal");
+        doc.setFont("Roboto");
 
         // Заголовок
         doc.setFontSize(18);
@@ -176,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         y += 35;
 
-        // Вставляем QR-код (размер 60x60 мм)
+        // Вставляем QR-код
         doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
         doc.text("Отсканируйте для оплаты", 125, 105);
 
@@ -185,14 +215,11 @@ document.addEventListener('DOMContentLoaded', function() {
         doc.text("Подпись плательщика: ___________________", 20, 270);
         doc.text("Дата: __.__.20__ г.", 120, 270);
 
-        // Открываем PDF в новой вкладке вместо скачивания
+        // Открываем PDF в новой вкладке
         const pdfBlob = doc.output('blob');
         const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Открываем в новой вкладке
         window.open(pdfUrl, '_blank');
         
-        // Очищаем URL через минуту (чтобы не засорять память)
         setTimeout(() => {
             URL.revokeObjectURL(pdfUrl);
         }, 60000);
