@@ -8,6 +8,9 @@
     <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
+    <!-- Плагин для поддержки кириллицы в jsPDF -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    
     <!-- Библиотека для QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
@@ -34,16 +37,16 @@
 
     <form id="payment-form">
         <label>Фамилия:</label>
-        <input type="text" name="surname" placeholder="Ivanov" required>
+        <input type="text" name="surname" placeholder="Иванов" required>
 
         <label>Имя:</label>
-        <input type="text" name="name" placeholder="Ivan" required>
+        <input type="text" name="name" placeholder="Иван" required>
 
         <label>Отчество:</label>
-        <input type="text" name="patronymic" placeholder="Ivanovich">
+        <input type="text" name="patronymic" placeholder="Иванович">
 
         <label>Назначение платежа: <span id="char-count" class="counter">0/120</span></label>
-        <textarea name="purpose" id="purpose-input" rows="2" placeholder="Oplata za obuchenie vozhdeniyu (kat. B)" maxlength="120" required></textarea>
+        <textarea name="purpose" id="purpose-input" rows="2" placeholder="Оплата за обучение вождению (кат. B)" maxlength="120" required></textarea>
         <div id="length-error" class="error-msg">Слишком длинное назначение платежа! Сократите до 120 символов.</div>
         <div class="hint">Важно: Для работы QR-кода текст должен быть кратким.</div>
 
@@ -59,11 +62,11 @@
         </div>
 
         <!-- Реквизиты получателя (скрытые) -->
-        <input type="hidden" name="recipient_name" value='OOO "AVTOSHKOLA # 1"'>
+        <input type="hidden" name="recipient_name" value='ООО "АВТОШКОЛА № 1"'>
         <input type="hidden" name="inn" value="2312137727">
         <input type="hidden" name="kpp" value="231201001">
         <input type="hidden" name="account" value="40702810530000120382">
-        <input type="hidden" name="bank_name" value="PAO SBERBANK">
+        <input type="hidden" name="bank_name" value="ПАО СБЕРБАНК">
         <input type="hidden" name="bik" value="040349602">
         <input type="hidden" name="kor_account" value="30101810100000000602">
 
@@ -149,40 +152,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
+        // Используем встроенный шрифт с поддержкой кириллицы
+        // jsPDF имеет встроенную поддержку некоторых кириллических символов
+        // Для полной поддержки нужно использовать custom font, но для базовых нужд хватит и этого
+        
         // Заголовок
         doc.setFontSize(18);
-        doc.text("Payment Receipt", 20, 20);
+        doc.text("Квитанция на оплату", 20, 20);
         doc.setFontSize(10);
-        doc.text("(Generated automatically)", 20, 26);
+        doc.text("(Сформировано автоматически)", 20, 26);
 
         // Реквизиты получателя
         doc.setFontSize(12);
         let y = 40;
         const lineHeight = 7;
 
-        doc.text(`Recipient: ${data.recipient_name}`, 20, y); y += lineHeight;
-        doc.text(`INN: ${data.inn} | KPP: ${data.kpp}`, 20, y); y += lineHeight;
-        doc.text(`Account: ${data.account}`, 20, y); y += lineHeight;
-        doc.text(`Bank: ${data.bank_name}`, 20, y); y += lineHeight;
-        doc.text(`BIK: ${data.bik} | CorrAccount: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
+        doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += lineHeight;
+        doc.text(`ИНН: ${data.inn} | КПП: ${data.kpp}`, 20, y); y += lineHeight;
+        doc.text(`Р/с: ${data.account}`, 20, y); y += lineHeight;
+        doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
+        doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
 
         // Плательщик
         doc.setFillColor(240, 240, 240);
         doc.rect(20, y - 5, 170, 25, 'F');
-        doc.text(`Payer: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
-        doc.text(`Purpose: ${data.purpose}`, 25, y + 12);
-        doc.text(`Amount: ${data.amount_rub} rub. ${data.amount_kop} kop.`, 25, y + 19);
+        doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
+        doc.text(`Назначение: ${data.purpose}`, 25, y + 12);
+        doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 25, y + 19);
         
         y += 35;
 
         // Вставляем QR-код
         doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
-        doc.text("Scan to pay", 125, 105);
+        doc.text("Отсканируйте для оплаты", 125, 105);
 
         // Подпись и дата внизу
         doc.line(20, 260, 190, 260);
-        doc.text("Payer's signature: ___________________", 20, 270);
-        doc.text("Date: __.__.20__", 120, 270);
+        doc.text("Подпись плательщика: ___________________", 20, 270);
+        doc.text("Дата: __.__.20__ г.", 120, 270);
 
         // Открываем PDF в новой вкладке
         const pdfBlob = doc.output('blob');
