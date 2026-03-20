@@ -8,7 +8,7 @@
     <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- Новая библиотека для QR-кодов с поддержкой UTF-8 -->
+    <!-- Библиотека для QR-кодов с поддержкой UTF-8 -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
     <style>
@@ -30,7 +30,7 @@
 
 <div class="container">
     <h2>Оплата обучения</h2>
-    <p style="text-align: center; color: #666;">Заполните данные и скачайте квитанцию с QR-кодом.</p>
+    <p style="text-align: center; color: #666;">Заполните данные и откройте квитанцию с QR-кодом в новой вкладке.</p>
 
     <form id="payment-form">
         <label>Фамилия:</label>
@@ -67,7 +67,7 @@
         <input type="hidden" name="bik" value="040349602">
         <input type="hidden" name="kor_account" value="30101810100000000602">
 
-        <button type="submit" id="submit-btn">📥 Скачать PDF с QR-кодом</button>
+        <button type="submit" id="submit-btn">📄 Открыть квитанцию в новой вкладке</button>
     </form>
 </div>
 
@@ -77,7 +77,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Проверка: загрузилась ли библиотека?
     if (typeof qrcode === 'undefined') {
         alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте подключение к интернету.");
         return;
@@ -114,19 +113,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
 
-        // Показываем длину строки и количество байт
         const byteLength = new TextEncoder().encode(qrData).length;
         console.log("Длина строки QR (символы):", qrData.length);
         console.log("Длина строки QR (байты):", byteLength);
-        console.log("Строка QR:", qrData);
 
         const qrContainer = document.getElementById('qr-container');
         qrContainer.innerHTML = '';
 
         try {
-            // Создаем QR-код с автоматическим подбором размера (typeNumber 0)
-            // Эта библиотека правильно работает с UTF-8
-            const qr = qrcode(0, 'M'); // 0 = автоподбор, M = средний уровень коррекции
+            // Создаем QR-код
+            const qr = qrcode(0, 'M'); // 0 = автоподбор размера, M = средний уровень коррекции
             qr.addData(qrData);
             qr.make();
 
@@ -138,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            generatePDF(qrImageData, data);
+            generateAndOpenPDF(qrImageData, data);
             
         } catch (err) {
             console.error(err);
@@ -150,15 +146,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function generatePDF(qrImageSrc, data) {
+    function generateAndOpenPDF(qrImageSrc, data) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
+        // Заголовок
         doc.setFontSize(18);
         doc.text("Квитанция на оплату", 20, 20);
         doc.setFontSize(10);
         doc.text("(Сформировано автоматически)", 20, 26);
 
+        // Реквизиты получателя
         doc.setFontSize(12);
         let y = 40;
         const lineHeight = 7;
@@ -169,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
         doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
         doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
 
+        // Плательщик
         doc.setFillColor(240, 240, 240);
         doc.rect(20, y - 5, 170, 25, 'F');
         doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
@@ -181,11 +180,22 @@ document.addEventListener('DOMContentLoaded', function() {
         doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
         doc.text("Отсканируйте для оплаты", 125, 105);
 
+        // Подпись и дата внизу
         doc.line(20, 260, 190, 260);
         doc.text("Подпись плательщика: ___________________", 20, 270);
         doc.text("Дата: __.__.20__ г.", 120, 270);
 
-        doc.save(`Kvitanciya_${data.surname}.pdf`);
+        // Открываем PDF в новой вкладке вместо скачивания
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Открываем в новой вкладке
+        window.open(pdfUrl, '_blank');
+        
+        // Очищаем URL через минуту (чтобы не засорять память)
+        setTimeout(() => {
+            URL.revokeObjectURL(pdfUrl);
+        }, 60000);
     }
 });
 </script>
