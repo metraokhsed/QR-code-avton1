@@ -4,75 +4,40 @@
     <meta charset="UTF-8">
     <title>Квитанция</title>
 
-    <!-- Шрифт -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-
-    <!-- Библиотеки -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: Arial;
             padding: 20px;
-            background: #f5f5f5;
         }
-
-        .box {
-            background: white;
-            padding: 20px;
-            max-width: 500px;
-            margin: auto;
-            border-radius: 10px;
-        }
-
         input, textarea {
-            width: 100%;
-            margin-top: 10px;
+            display: block;
+            margin: 10px 0;
             padding: 8px;
-            font-family: 'Roboto';
+            width: 300px;
         }
-
         button {
-            margin-top: 20px;
-            padding: 12px;
-            width: 100%;
-            background: green;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        #pdf {
-            display: none;
-            width: 210mm;
-            padding: 20mm;
-            background: white;
-            font-family: 'Roboto';
-        }
-
-        .qr {
-            margin-top: 20px;
+            padding: 10px;
         }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Оплата</h2>
+<h2>Создать квитанцию</h2>
 
-    <form id="form">
-        <input name="surname" placeholder="Фамилия" required>
-        <input name="name" placeholder="Имя" required>
-        <textarea name="purpose" placeholder="Назначение" required></textarea>
-        <input name="amount" type="number" value="1000" required>
+<form id="form">
+    <input name="surname" placeholder="Фамилия" required>
+    <input name="name" placeholder="Имя" required>
+    <textarea name="purpose" placeholder="Назначение" required></textarea>
+    <input name="amount" type="number" value="1000" required>
 
-        <button>Создать PDF</button>
-    </form>
-</div>
-
-<div id="pdf"></div>
+    <button>Создать PDF</button>
+</form>
 
 <script>
 document.getElementById("form").addEventListener("submit", function(e) {
@@ -82,7 +47,6 @@ document.getElementById("form").addEventListener("submit", function(e) {
 
     const qrText = `Оплата|${data.surname}|${data.name}|${data.purpose}|${data.amount}`;
 
-    // создаём контейнер
     const qrDiv = document.createElement("div");
 
     new QRCode(qrDiv, {
@@ -91,7 +55,6 @@ document.getElementById("form").addEventListener("submit", function(e) {
         height: 200
     });
 
-    // ждём отрисовку QR
     setTimeout(() => {
         const img = qrDiv.querySelector("img");
 
@@ -100,39 +63,31 @@ document.getElementById("form").addEventListener("submit", function(e) {
             return;
         }
 
-        generatePDF(img.src, data);
+        createPDF(img.src, data);
 
     }, 300);
 });
 
-function generatePDF(qrImage, data) {
+function createPDF(qrImage, data) {
 
-    const pdf = document.getElementById("pdf");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-    pdf.innerHTML = `
-        <h2>Квитанция</h2>
-        <p>ФИО: ${data.surname} ${data.name}</p>
-        <p>Назначение: ${data.purpose}</p>
-        <p>Сумма: ${data.amount} руб.</p>
-        <div class="qr">
-            <img src="${qrImage}">
-        </div>
-    `;
+    // ⚠️ ВАЖНО: используем встроенный шрифт с поддержкой UTF-8
+    doc.setFont("Helvetica", "normal");
 
-    html2canvas(pdf, {
-        scale: 2,
-        useCORS: true
-    }).then(canvas => {
+    doc.setFontSize(16);
+    doc.text("Квитанция", 20, 20);
 
-        const imgData = canvas.toDataURL("image/png");
+    doc.setFontSize(12);
+    doc.text(`ФИО: ${data.surname} ${data.name}`, 20, 40);
+    doc.text(`Назначение: ${data.purpose}`, 20, 50);
+    doc.text(`Сумма: ${data.amount} руб.`, 20, 60);
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    // QR
+    doc.addImage(qrImage, "PNG", 20, 80, 80, 80);
 
-        doc.addImage(imgData, "PNG", 0, 0, 210, 297);
-
-        doc.output("dataurlnewwindow");
-    });
+    doc.save("receipt.pdf");
 }
 </script>
 
