@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Генератор квитанции</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        label { display: block; margin-top: 10px; }
+        input, textarea { width: 300px; padding: 5px; }
+        button { margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #qr-container { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<h2>Заполните данные для квитанции</h2>
+
+<form id="payment-form">
+    <label>Фамилия:</label>
+    <input type="text" name="surname" required>
+
+    <label>Имя:</label>
+    <input type="text" name="name" required>
+
+    <label>Отчество:</label>
+    <input type="text" name="patronymic">
+
+    <label>Назначение платежа:</label>
+    <textarea name="purpose" rows="2" required></textarea>
+
+    <label>Сумма (руб):</label>
+    <input type="number" name="amount_rub" value="0" min="0">
+
+    <label>Копейки:</label>
+    <input type="number" name="amount_kop" value="0" min="0" max="99">
+
+    <!-- Скрытые поля с реквизитами получателя -->
+    <input type="hidden" name="recipient_name" value='ООО "АВТОШКОЛА № 1"'>
+    <input type="hidden" name="inn" value="2312137727">
+    <input type="hidden" name="kpp" value="231201001">
+    <input type="hidden" name="account" value="40702810530000120382">
+    <input type="hidden" name="bank_name" value="КРАСНОДАРСКОЕ ОТДЕЛЕНИЕ N8619 ПАО СБЕРБАНК">
+    <input type="hidden" name="bik" value="040349602">
+    <input type="hidden" name="kor_account" value="30101810100000000602">
+
+    <button type="submit">Скачать PDF с QR-кодом</button>
+</form>
+
+<div id="qr-container"></div>
+
+<script>
+document.getElementById('payment-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+
+    // Формируем строку для QR-кода по ГОСТ Р 56042-2014
+    const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
+
+    // Генерируем QR-код
+    const qrContainer = document.getElementById('qr-container');
+    qrContainer.innerHTML = ''; // Очищаем предыдущий QR
+
+    await QRCode.toCanvas(qrContainer, qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+            dark: "#000000",
+            light: "#ffffff"
+        }
+    });
+
+    // Получаем изображение QR как Data URL
+    const canvas = qrContainer.querySelector('canvas');
+    const qrImageData = canvas.toDataURL('image/png');
+
+    // Создаём PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Заголовок
+    doc.setFontSize(16);
+    doc.text("Квитанция на оплату", 20, 20);
+
+    // Реквизиты получателя
+    doc.setFontSize(12);
+    let y = 40;
+    doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += 10;
+    doc.text(`ИНН: ${data.inn}`, 20, y); y += 10;
+    doc.text(`КПП: ${data.kpp}`, 20, y); y += 10;
+    doc.text(`Р/с: ${data.account}`, 20, y); y += 10;
+    doc.text(`Банк: ${data.bank_name}`, 20, y); y += 10;
+    doc.text(`БИК: ${data.bik}`, 20, y); y += 10;
+    doc.text(`К/с: ${data.kor_account}`, 20, y); y += 20;
+
+    // Плательщик
+    doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 20, y); y += 10;
+    doc.text(`Назначение: ${data.purpose}`, 20, y); y += 10;
+    doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 20, y); y += 30;
+
+    // Вставляем QR-код
+    doc.addImage(qrImageData, 'PNG', 120, 40, 50, 50);
+
+    // Подпись и дата
+    doc.text("Подпись: _________________________ Дата: \"__\" __________ 20__ г.", 20, 250);
+
+    // Сохраняем PDF
+    doc.save('kvitanciya.pdf');
+});
+</script>
+
+</body>
+</html>
