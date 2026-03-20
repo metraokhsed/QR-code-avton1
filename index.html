@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор квитанции</title>
     
-    <!-- 1. Подключаем библиотеку для PDF -->
+    <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- 2. Подключаем библиотеку для QR-кодов (проверенная версия) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Локальная библиотека для QR-кодов (теперь работает без интернета после загрузки) -->
+    <script src="qrcode.min.js"></script>
 
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
@@ -75,16 +75,14 @@
 <div id="qr-container"></div>
 
 <script>
-// Ждем полной загрузки страницы
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Проверка: загрузилась ли библиотека QRCode?
+    // Проверка: загрузилась ли библиотека?
     if (typeof QRCode === 'undefined') {
-        alert("Ошибка загрузки библиотеки QR-кода. Проверьте подключение к интернету.");
+        alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте, что файл qrcode.min.js лежит рядом с index.html.");
         return;
     }
 
-    // Контроль длины текста
     const purposeInput = document.getElementById('purpose-input');
     const charCount = document.getElementById('char-count');
     const lengthError = document.getElementById('length-error');
@@ -104,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('payment-form').addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Проверка длины перед генерацией
         if (purposeInput.value.length > 120) {
             alert("Пожалуйста, сократите назначение платежа до 120 символов!");
             return;
@@ -113,18 +110,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
 
-        // Формируем строку для QR-кода
         const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
         
         const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
 
-        // Очищаем предыдущий QR
         const qrContainer = document.getElementById('qr-container');
         qrContainer.innerHTML = '';
 
         try {
-            // Создаем QR-код
-            // typeNumber: 0 означает автоматический подбор размера
             const qrcodeObj = new QRCode(qrContainer, {
                 text: qrData,
                 width: 256,
@@ -135,29 +128,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 correctLevel : QRCode.CorrectLevel.M
             });
 
-            // Небольшая задержка для отрисовки
             setTimeout(() => {
                 const canvas = qrContainer.querySelector('canvas');
-                
-                if (!canvas) {
-                    // Если canvas не создан, возможно, библиотека создала img (fallback)
+                let qrImageData = null;
+
+                if (canvas) {
+                    qrImageData = canvas.toDataURL('image/png');
+                } else {
                     const img = qrContainer.querySelector('img');
-                    if(img) {
-                         generatePDF(img.src, data);
-                    } else {
-                        alert("Ошибка генерации QR-кода.");
+                    if (img) {
+                        qrImageData = img.src;
                     }
+                }
+
+                if (!qrImageData) {
+                    alert("Не удалось создать изображение QR-кода.");
                     return;
                 }
 
-                const qrImageData = canvas.toDataURL('image/png');
                 generatePDF(qrImageData, data);
                 
             }, 100);
 
         } catch (err) {
             console.error(err);
-            alert("Ошибка: Данные слишком длинные или некорректные.\nПопробуйте сократить текст назначения платежа.\n\nДетали: " + err.message);
+            let errorMsg = "Ошибка при создании квитанции.";
+            if (err.message.includes("code length overflow")) {
+                errorMsg = "Данные слишком длинные для QR-кода.\nПожалуйста, сократите назначение платежа.";
+            }
+            alert(errorMsg + "\n\nДетали: " + err.message);
         }
     });
 
@@ -188,9 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         y += 35;
 
-        // Вставляем QR-код
         doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
-        
         doc.text("Отсканируйте для оплаты", 125, 105);
 
         doc.line(20, 260, 190, 260);
