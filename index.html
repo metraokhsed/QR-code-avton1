@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор квитанции</title>
     
-    <!-- Библиотека для PDF -->
+    <!-- 1. Подключаем библиотеку для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 2. Подключаем библиотеку для QR-кодов (проверенная версия) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
@@ -42,7 +45,7 @@
         <label>Назначение платежа: <span id="char-count" class="counter">0/120</span></label>
         <textarea name="purpose" id="purpose-input" rows="2" placeholder="Оплата за обучение вождению (кат. B)" maxlength="120" required></textarea>
         <div id="length-error" class="error-msg">Слишком длинное назначение платежа! Сократите до 120 символов.</div>
-        <div class="hint">Важно: Для корректной работы QR-кода текст должен быть кратким.</div>
+        <div class="hint">Важно: Для работы QR-кода текст должен быть кратким.</div>
 
         <div style="display: flex; gap: 10px;">
             <div style="flex: 1;">
@@ -72,117 +75,129 @@
 <div id="qr-container"></div>
 
 <script>
-/**
- * ВНУТРЕННЯЯ БИБЛИОТЕКА ДЛЯ QR-КОДОВ
- */
-var QRCode=function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=[],g=this.data.charCodeAt(d);g>65536?(f[0]=240|(1835008&g)>>>18,f[1]=128|(258048&g)>>>12,f[2]=128|(4032&g)>>>6,f[3]=128|63&g):g>2048?(f[0]=224|(61440&g)>>>12,f[1]=128|(4032&g)>>>6,f[2]=128|63&g):g>128?(f[0]=192|(1984&g)>>>6,f[1]=128|63&g):f[0]=g,b.push(f)}this.parsedData=Array.prototype.concat.apply([],b),this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){var a=!1,b=navigator.userAgent;if(/android/i.test(b)){a=!0;var c=b.toString().match(/android ([0-9]\.[0-9])/i);c&&c[1]&&(a=parseFloat(c[1]))}return a}function n(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function o(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a.length?3:0)}function p(a,b,c,d,e){if(this._el=a,this._htOption=b,this._canvas=document.createElement("canvas"),this._canvas.style.display="none",this._el.appendChild(this._canvas),this._ctx=this._canvas.getContext("2d"),this._oQRCode=new b(c,d),this._oQRCode.addData(e),this._oQRCode.make(),a.title=e,this._canvas.width=this._oQRCode.getModuleCount()*this._htOption.width+2*this._htOption.margin,this._canvas.height=this._oQRCode.getModuleCount()*this._htOption.height+2*this._htOption.margin,this._nMargin=this._htOption.margin,this._drawHTML()}function q(a,b){this._el=a,this._htOption=b,this._table=document.createElement("table"),this._table.style.borderCollapse="collapse",this._table.style.display="none",this._el.appendChild(this._table),this._oQRCode=new b(c.MODE_8BIT_BYTE,b),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._drawTable()}function r(a){this._el=a,this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:2},this._oQRCode=null,this._canvas=null,this._ctx=null,this._nMargin=0,this._el.innerHTML="",this._canvas=document.createElement("canvas"),this._canvas.style.display="none",this._el.appendChild(this._canvas),this._ctx=this._canvas.getContext("2d"),this.makeCode(c)}function s(a){var b=o(a);if(b<=40)return 1;if(b<=61)return 2;if(b<=90)return 3;if(b<=121)return 4;if(b<=152)return 5;if(b<=183)return 6;if(b<=214)return 7;if(b<=245)return 8;if(b<=276)return 9;if(b<=307)return 10;if(b<=338)return 11;if(b<=369)return 12;if(b<=400)return 13;if(b<=431)return 14;if(b<=462)return 15;if(b<=493)return 16;if(b<=524)return 17;if(b<=555)return 18;if(b<=586)return 19;if(b<=617)return 20;if(b<=648)return 21;if(b<=679)return 22;if(b<=710)return 23;if(b<=741)return 24;if(b<=772)return 25;if(b<=803)return 26;if(b<=834)return 27;if(b<=865)return 28;if(b<=896)return 29;if(b<=927)return 30;if(b<=958)return 31;if(b<=989)return 32;if(b<=1020)return 33;if(b<=1051)return 34;if(b<=1082)return 35;if(b<=1113)return 36;if(b<=1144)return 37;if(b<=1175)return 38;if(b<=1206)return 39;if(b<=1237)return 40;throw new Error("Too long data")}var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;b.getBCHDigit()-c.G15.getBCHDigit()>=0;)b^=c.G15<<b.getBCHDigit()-c.G15.getBCHDigit();return(a<<10|b)^c.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;b.getBCHDigit()-c.G18.getBCHDigit()>=0;)b^=c.G18<<b.getBCHDigit()-c.G18.getBCHDigit();return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return c.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return(b+c)%2==0;case e.PATTERN001:return b%2==0;case e.PATTERN010:return c%3==0;case e.PATTERN011:return(b+c)%3==0;case e.PATTERN100:return(b/2+c/3)%2==0;case e.PATTERN101:return b*c%2+b*c%3==0;case e.PATTERN110:return(b*c%2+b*c%3)%2==0;case e.PATTERN111:return(b*c%3+(b+c)%2)%2==0;default:throw new Error("bad mask:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(10>b&&27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(27>b&&41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||0==h&&0==i||g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l},glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},g=new function(){for(var a=0;8>a;a++)c.EXP_TABLE[a]=1<<a;for(var a=8;256>a;a++)c.EXP_TABLE[a]=c.EXP_TABLE[a-4]^c.EXP_TABLE[a-5]^c.EXP_TABLE[a-6]^c.EXP_TABLE[a-8];for(var a=0;255>a;a++)c.LOG_TABLE[c.EXP_TABLE[a]]=a};i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=c.gexp(c.glog(this.get(c))+c.glog(a.get(d)));return new i(b,0)}},a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,b){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var c=0;c<this.moduleCount;c++){this.modules[c]=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++)this.modules[c][d]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,b),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,b)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=c.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createData:function(a,c,d){for(var e=j.getRSBlocks(a,c),f=new k,g=0;g<d.length;g++){var h=d[g];f.put(h.mode,4),f.put(h.getLength(),h.getLengthInBits(a)),h.write(f)}for(var i=0;f<d.length;f++)i+=d[f].dataCount;if(f.getLengthInBits()>8*i)throw new Error("code length overflow. ("+f.getLengthInBits()+">"+8*i+")");for(f.getLengthInBits()+4<=8*i&&f.put(0,4);0!=f.getLengthInBits()%8;)f.putBit(!1);for(;;){if(f.getLengthInBits()>=8*i)break;if(f.put(236,8),f.getLengthInBits()>=8*i)break;f.put(17,8)}return c.createBytes(f,d)},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,f=0,g=this.moduleCount-1;g>0;g-=2)for(6==g&&g--;;){for(var h=0;2>h;h++)if(null==this.modules[d][g-h]){var i=!1;f<a.length&&(i=1==(a[f]>>>e&1));var j=b.getMask(c,d,g-h);j&&(i=!i),this.modules[d][g-h]=i,e--,-1==e&&(f++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),f=new k,g=0;g<d.length;g++){var h=d[g];f.put(h.mode,4),f.put(h.getLength(),h.getLengthInBits(a)),h.write(f)}for(var i=0;g<d.length;g++)i+=d[g].dataCount;if(f.getLengthInBits()>8*i)throw new Error("code length overflow. ("+f.getLengthInBits()+">"+8*i+")");for(f.getLengthInBits()+4<=8*i&&f.put(0,4);0!=f.getLengthInBits()%8;)f.putBit(!1);for(;;){if(f.getLengthInBits()>=8*i)break;if(f.put(236,8),f.getLengthInBits()>=8*i)break;f.put(17,8)}return c.createBytes(f,d)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,f=new Array(b.length),g=new Array(b.length),h=0;h<b.length;h++){var j=b[h].dataCount,k=b[h].totalCount-j;d=Math.max(d,j),e=Math.max(e,k),f[h]=new Array(j);for(var l=0;l<f[h].length;l++)f[h][l]=255&a.buffer[l+c];c+=j;var m=c.getErrorCorrectPolynomial(k),n=new i(f[h],m.getLength()-1),o=n.mod(m);g[h]=new Array(m.getLength()-1);for(var l=0;l<g[h].length;l++){var p=l+o.getLength()-g[h].length;g[h][l]=p>=0?o.get(p):0}}for(var q=0,l=0;l<b.length;l++)q+=b[l].totalCount;for(var r=new Array(q),s=0,l=0;d>l;l++)for(var h=0;h<b.length;h++)l<f[h].length&&(r[s++]=f[h][l]);for(var l=0;e>l;l++)for(var h=0;h<b.length;h++)l<g[h].length&&(r[s++]=g[h][l]);return r},j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;h>k;k++)e.push(new j(g,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,14,2,34,15],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(this.buffer[b]>>>7-a%8&1)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(a>>>b-c-1&1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}},l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,66],[192,152,108,86],[230,180,130,102],[271,213,156,122],[321,251,182,140],[367,287,207,158],[425,331,240,180],[458,362,260,197],[520,412,295,223],[586,450,325,253],[644,504,367,283],[718,560,405,313],[792,624,450,341],[858,666,485,385],[929,711,512,406],[1003,779,568,442],[1091,857,625,464],[1171,911,658,514],[1273,997,731,538],[1367,1059,779,596],[1465,1125,822,628],[1528,1190,878,661],[1628,1264,925,701],[1732,1370,985,745],[1840,1452,1033,793],[1952,1538,1112,845],[2068,1628,1168,893],[2188,1722,1228,938],[2303,1809,1283,983],[2431,1911,1351,1028],[2563,1989,1423,1052],[2699,2099,1499,1096],[2809,2213,1579,1142],[2953,2331,1663,1222]],p.prototype={clear:function(){this._el.innerHTML="",this._canvas=document.createElement("canvas"),this._canvas.style.display="none",this._el.appendChild(this._canvas),this._ctx=this._canvas.getContext("2d")},_drawHTML:function(){var a=this._oQRCode.getModuleCount(),b=this._htOption.width,c=this._htOption.height,d=this._nMargin,e=this._ctx,f=this._htOption.colorDark,g=this._htOption.colorLight;e.fillStyle=g,e.fillRect(0,0,this._canvas.width,this._canvas.height);for(var h=0;a>h;h++)for(var i=0;a>i;i++)this._oQRCode.isDark(h,i)&&(e.fillStyle=f,e.fillRect(d+i*b,d+h*c,b,c));this._canvas.style.display="block",this._el.appendChild(this._canvas)}};var t=function(a,b,c){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:2},"string"==typeof b&&(b={text:b}),b)for(var d in b)this._htOption[d]=b[d];"string"==typeof a&&(a=document.getElementById(a)),this._el=a,this._oQRCode=null,this._canvas=null,this._ctx=null,this._nMargin=0,this._el.innerHTML="",this._canvas=document.createElement("canvas"),this._canvas.style.display="none",this._el.appendChild(this._canvas),this._ctx=this._canvas.getContext("2d"),this.makeCode(c)};t.prototype.makeCode=function(a){this._oQRCode=new b(n(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a;var c=this._htOption.width,d=this._htOption.height,e=this._oQRCode.getModuleCount(),f=this._nMargin;this._canvas.width=c*e+2*f,this._canvas.height=d*e+2*f;var g=this._ctx;g.fillStyle=this._htOption.colorLight,g.fillRect(0,0,this._canvas.width,this._canvas.height);for(var h=0;e>h;h++)for(var i=0;e>i;i++)this._oQRCode.isDark(h,i)&&(g.fillStyle=this._htOption.colorDark,g.fillRect(f+i*c,f+h*d,c,d));this._canvas.style.display="block"},t.CorrectLevel=d,"undefined"!=typeof module&&module.exports&&(module.exports=t),"function"==typeof define&&define.amd&&define(function(){return t});
-</script>
-
-<script>
-// Контроль длины текста
-const purposeInput = document.getElementById('purpose-input');
-const charCount = document.getElementById('char-count');
-const lengthError = document.getElementById('length-error');
-
-purposeInput.addEventListener('input', function() {
-    const len = this.value.length;
-    charCount.textContent = `${len}/120`;
-    if (len > 120) {
-        lengthError.style.display = 'block';
-        this.style.borderColor = 'red';
-    } else {
-        lengthError.style.display = 'none';
-        this.style.borderColor = '#ccc';
-    }
-});
-
-document.getElementById('payment-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Проверка длины перед генерацией
-    if (purposeInput.value.length > 120) {
-        alert("Пожалуйста, сократите назначение платежа до 120 символов!");
+// Ждем полной загрузки страницы
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Проверка: загрузилась ли библиотека QRCode?
+    if (typeof QRCode === 'undefined') {
+        alert("Ошибка загрузки библиотеки QR-кода. Проверьте подключение к интернету.");
         return;
     }
 
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
+    // Контроль длины текста
+    const purposeInput = document.getElementById('purpose-input');
+    const charCount = document.getElementById('char-count');
+    const lengthError = document.getElementById('length-error');
 
-    // Формируем строку для QR-кода
-    const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
-    
-    const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
+    purposeInput.addEventListener('input', function() {
+        const len = this.value.length;
+        charCount.textContent = `${len}/120`;
+        if (len > 120) {
+            lengthError.style.display = 'block';
+            this.style.borderColor = 'red';
+        } else {
+            lengthError.style.display = 'none';
+            this.style.borderColor = '#ccc';
+        }
+    });
 
-    // Очищаем предыдущий QR
-    const qrContainer = document.getElementById('qr-container');
-    qrContainer.innerHTML = '';
+    document.getElementById('payment-form').addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    try {
-        // Пытаемся создать QR с автоматическим подбором размера (typeNumber: 0)
-        // Библиотека сама выберет минимальный размер, в который влезут данные
-        const qrcodeObj = new QRCode(qrContainer, {
-            text: qrData,
-            width: 256,
-            height: 256,
-            typeNumber: 0, // 0 = автоподбор
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.M // Уровень коррекции ошибок M (средний)
-        });
+        // Проверка длины перед генерацией
+        if (purposeInput.value.length > 120) {
+            alert("Пожалуйста, сократите назначение платежа до 120 символов!");
+            return;
+        }
 
-        setTimeout(() => {
-            const canvas = qrContainer.querySelector('canvas');
-            
-            if (!canvas) {
-                alert("Ошибка генерации QR-кода. Проверьте данные.");
-                return;
-            }
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
 
-            const qrImageData = canvas.toDataURL('image/png');
+        // Формируем строку для QR-кода
+        const sumString = `${data.amount_rub}.${data.amount_kop.padStart(2, '0')}`;
+        
+        const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
 
-            // Создаём PDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        // Очищаем предыдущий QR
+        const qrContainer = document.getElementById('qr-container');
+        qrContainer.innerHTML = '';
 
-            doc.setFontSize(18);
-            doc.text("Квитанция на оплату", 20, 20);
-            doc.setFontSize(10);
-            doc.text("(Сформировано автоматически)", 20, 26);
+        try {
+            // Создаем QR-код
+            // typeNumber: 0 означает автоматический подбор размера
+            const qrcodeObj = new QRCode(qrContainer, {
+                text: qrData,
+                width: 256,
+                height: 256,
+                typeNumber: 0, 
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
 
-            doc.setFontSize(12);
-            let y = 40;
-            const lineHeight = 7;
+            // Небольшая задержка для отрисовки
+            setTimeout(() => {
+                const canvas = qrContainer.querySelector('canvas');
+                
+                if (!canvas) {
+                    // Если canvas не создан, возможно, библиотека создала img (fallback)
+                    const img = qrContainer.querySelector('img');
+                    if(img) {
+                         generatePDF(img.src, data);
+                    } else {
+                        alert("Ошибка генерации QR-кода.");
+                    }
+                    return;
+                }
 
-            doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += lineHeight;
-            doc.text(`ИНН: ${data.inn} | КПП: ${data.kpp}`, 20, y); y += lineHeight;
-            doc.text(`Р/с: ${data.account}`, 20, y); y += lineHeight;
-            doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
-            doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
+                const qrImageData = canvas.toDataURL('image/png');
+                generatePDF(qrImageData, data);
+                
+            }, 100);
 
-            doc.setFillColor(240, 240, 240);
-            doc.rect(20, y - 5, 170, 25, 'F');
-            doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
-            doc.text(`Назначение: ${data.purpose}`, 25, y + 12);
-            doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 25, y + 19);
-            
-            y += 35;
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка: Данные слишком длинные или некорректные.\nПопробуйте сократить текст назначения платежа.\n\nДетали: " + err.message);
+        }
+    });
 
-            // Вставляем QR-код
-            // Если QR большой, он может занять много места, но 60x60 обычно ок
-            doc.addImage(qrImageData, 'PNG', 120, 40, 60, 60);
-            
-            doc.text("Отсканируйте для оплаты", 125, 105);
+    function generatePDF(qrImageSrc, data) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-            doc.line(20, 260, 190, 260);
-            doc.text("Подпись плательщика: ___________________", 20, 270);
-            doc.text("Дата: __.__.20__ г.", 120, 270);
+        doc.setFontSize(18);
+        doc.text("Квитанция на оплату", 20, 20);
+        doc.setFontSize(10);
+        doc.text("(Сформировано автоматически)", 20, 26);
 
-            doc.save(`Kvitanciya_${data.surname}.pdf`);
-            
-        }, 100);
-    } catch (err) {
-        console.error(err);
-        alert("Ошибка: Данные слишком длинные даже для максимального QR-кода.\nПожалуйста, сократите назначение платежа.\n\nТекст ошибки: " + err.message);
+        doc.setFontSize(12);
+        let y = 40;
+        const lineHeight = 7;
+
+        doc.text(`Получатель: ${data.recipient_name}`, 20, y); y += lineHeight;
+        doc.text(`ИНН: ${data.inn} | КПП: ${data.kpp}`, 20, y); y += lineHeight;
+        doc.text(`Р/с: ${data.account}`, 20, y); y += lineHeight;
+        doc.text(`Банк: ${data.bank_name}`, 20, y); y += lineHeight;
+        doc.text(`БИК: ${data.bik} | К/с: ${data.kor_account}`, 20, y); y += lineHeight * 1.5;
+
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, y - 5, 170, 25, 'F');
+        doc.text(`Плательщик: ${data.surname} ${data.name} ${data.patronymic || ''}`, 25, y + 5);
+        doc.text(`Назначение: ${data.purpose}`, 25, y + 12);
+        doc.text(`Сумма: ${data.amount_rub} руб. ${data.amount_kop} коп.`, 25, y + 19);
+        
+        y += 35;
+
+        // Вставляем QR-код
+        doc.addImage(qrImageSrc, 'PNG', 120, 40, 60, 60);
+        
+        doc.text("Отсканируйте для оплаты", 125, 105);
+
+        doc.line(20, 260, 190, 260);
+        doc.text("Подпись плательщика: ___________________", 20, 270);
+        doc.text("Дата: __.__.20__ г.", 120, 270);
+
+        doc.save(`Kvitanciya_${data.surname}.pdf`);
     }
 });
 </script>
