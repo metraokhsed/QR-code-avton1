@@ -8,7 +8,7 @@
     <!-- Библиотека для PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- Библиотека для QR-кодов (надежный CDN) -->
+    <!-- Библиотека для QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
     <style>
@@ -63,7 +63,6 @@
         <input type="hidden" name="inn" value="2312137727">
         <input type="hidden" name="kpp" value="231201001">
         <input type="hidden" name="account" value="40702810530000120382">
-        <!-- СОКРАЩЕННОЕ НАЗВАНИЕ БАНКА -->
         <input type="hidden" name="bank_name" value="ПАО СБЕРБАНК">
         <input type="hidden" name="bik" value="040349602">
         <input type="hidden" name="kor_account" value="30101810100000000602">
@@ -78,7 +77,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Проверка: загрузилась ли библиотека?
     if (typeof QRCode === 'undefined') {
         alert("Критическая ошибка: Библиотека QRCode не загружена!\nПроверьте подключение к интернету.");
         return;
@@ -115,7 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const qrData = `ST00012|Name=${data.recipient_name}|PersonalAcc=${data.account}|BankName=${data.bank_name}|BIC=${data.bik}|CorrespAcc=${data.kor_account}|INN=${data.inn}|KPP=${data.kpp}|PayeeINN=${data.inn}|Purpose=${data.purpose}|Sum=${sumString}`;
 
-        // Показываем длину строки для отладки
         console.log("Длина строки QR:", qrData.length);
         console.log("Строка QR:", qrData);
 
@@ -123,14 +120,15 @@ document.addEventListener('DOMContentLoaded', function() {
         qrContainer.innerHTML = '';
 
         try {
+            // Создаем QR-код с правильными настройками для кириллицы
             const qrcodeObj = new QRCode(qrContainer, {
                 text: qrData,
                 width: 256,
                 height: 256,
-                typeNumber: 0, 
+                typeNumber: 0, // Автоподбор размера
                 colorDark : "#000000",
                 colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.M
+                correctLevel : QRCode.CorrectLevel.L // Низкий уровень коррекции ошибок (больше места для данных)
             });
 
             setTimeout(() => {
@@ -159,7 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(err);
             let errorMsg = "Ошибка при создании квитанции.";
             if (err.message.includes("code length overflow")) {
-                errorMsg = "Данные слишком длинные для QR-кода.\nПожалуйста, сократите назначение платежа.";
+                // Показываем более подробную информацию
+                const estimatedBytes = new TextEncoder().encode(qrData).length;
+                errorMsg = `Данные слишком длинные для QR-кода.\n\nФактическая длина: ${estimatedBytes} байт\nМаксимальная вместимость: ~2000 байт\n\nПожалуйста, сократите назначение платежа.`;
             }
             alert(errorMsg + "\n\nДетали: " + err.message);
         }
