@@ -3,34 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <title>Сервис подготовки квитанций</title>
-    <!-- Библиотека для генерации QR-кодов -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
         .form-container { max-width: 800px; margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; background: #f9f9f9; }
         label { display: block; margin-top: 10px; font-weight: bold; color: #333; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { margin-top: 20px; padding: 12px 24px; font-size: 16px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
+        
+        input[type="text"], input[type="number"] { 
+            width: 100%; 
+            padding: 8px; 
+            box-sizing: border-box; 
+            border: 1px solid #ddd;
+            border-radius: 4px; 
+        }
+        
+        input[readonly] {
+            background-color: #e9ecef;
+            color: #495057;
+            cursor: not-allowed;
+            border-color: #ced4da;
+        }
+
+        button { 
+            margin-top: 20px; 
+            padding: 12px 24px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
         button:hover { background: #45a049; }
 
-        #receipt-preview { display: none; border: 2px solid #000; padding: 30px; max-width: 800px; margin: 20px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .preview-header { text-align: right; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-        .preview-header button { margin-left: 10px; padding: 8px 16px; font-size: 14px; }
-        #receipt-preview table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        #receipt-preview td { padding: 8px 5px; border-bottom: 1px solid #eee; vertical-align: top; }
-        #receipt-preview td:first-child { font-weight: bold; width: 200px; color: #555; }
-        #qrcode { margin: 20px 0; text-align: center; }
-        #qrcode img { margin: 0 auto; }
-        .qr-instruction { font-size: 12px; color: #666; max-width: 400px; margin: 10px 0; line-height: 1.4; }
-        .bank-marks { margin-top: 60px; font-size: 12px; color: #999; border-top: 1px dashed #ccc; padding-top: 10px; }
+        #receipt-preview { 
+            display: none; 
+            border: 2px solid #000; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            background: white; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+        }
+        
+        .preview-header { 
+            text-align: right; 
+            margin-bottom: 15px; 
+            padding-bottom: 10px; 
+            border-bottom: 1px solid #eee; 
+        }
+        .preview-header button { 
+            margin-left: 10px; 
+            padding: 6px 12px; 
+            font-size: 13px; 
+        }
+        
+        .receipt-content {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .receipt-main {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .receipt-qr {
+            width: 180px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        #receipt-preview table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 14px;
+        }
+        #receipt-preview td { 
+            padding: 5px 3px; 
+            border-bottom: 1px solid #eee; 
+        }
+        #receipt-preview td:first-child { 
+            font-weight: bold; 
+            width: 180px; 
+            color: #555; 
+            vertical-align: top;
+        }
+        #qrcode { 
+            margin: 0 auto; 
+        }
+        #qrcode img { 
+            max-width: 160px; 
+            height: auto; 
+        }
+        .qr-instruction { 
+            font-size: 11px; 
+            color: #666; 
+            margin: 8px 0; 
+            line-height: 1.3; 
+            text-align: center; 
+        }
+        .bank-marks { 
+            margin-top: 30px; 
+            font-size: 11px; 
+            color: #999; 
+            border-top: 1px dashed #ccc; 
+            padding-top: 8px; 
+        }
 
+        /* === ПРАВИЛЬНЫЕ СТИЛИ ДЛЯ ПЕЧАТИ === */
         @media print {
-            body * { visibility: hidden; }
-            #receipt-preview, #receipt-preview * { visibility: visible; }
-            #receipt-preview { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; border: none; box-shadow: none; }
-            .preview-header { display: none !important; }
-            .no-print { display: none !important; }
-            * { background: white !important; box-shadow: none !important; }
+            /* Скрываем форму ввода данных */
+            .form-container {
+                display: none !important;
+            }
+            
+            /* Показываем только квитанцию */
+            #receipt-preview {
+                display: block !important;
+                position: static;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+                background: white;
+            }
+            
+            /* Скрываем кнопки управления */
+            .preview-header {
+                display: none !important;
+            }
+            
+            /* Настраиваем макет для печати */
+            .receipt-content {
+                display: flex !important;
+                gap: 15px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                padding: 10mm !important;
+            }
+            
+            .receipt-main {
+                flex: 1 !important;
+                min-width: 0 !important;
+            }
+            
+            .receipt-qr {
+                width: 160px !important;
+                text-align: center !important;
+                flex-shrink: 0 !important;
+                margin-left: 10px !important;
+            }
+            
+            #qrcode img {
+                max-width: 140px !important;
+                height: auto !important;
+            }
+            
+            .qr-instruction {
+                font-size: 10px !important;
+                margin: 5px 0 !important;
+                line-height: 1.2 !important;
+            }
+            
+            #receipt-preview table {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                font-size: 12px !important;
+                width: 100% !important;
+            }
+            
+            #receipt-preview td {
+                padding: 3px 2px !important;
+                border-bottom: 1px solid #ddd !important;
+                line-height: 1.3 !important;
+            }
+            
+            #receipt-preview td:first-child {
+                width: 150px !important;
+                font-weight: bold !important;
+            }
+            
+            .bank-marks {
+                margin-top: 20px !important;
+                font-size: 10px !important;
+                page-break-inside: avoid !important;
+            }
+            
+            /* Убираем все фоны и эффекты */
+            * {
+                background: white !important;
+                color: black !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+            
+            /* Настройка страницы A4 */
+            @page {
+                size: A4;
+                margin: 5mm;
+            }
         }
     </style>
 </head>
@@ -38,24 +212,29 @@
 
     <div class="form-container">
         <h2 style="color: #333;">📄 Сервис подготовки квитанций</h2>
-        <p style="color: #666; font-size: 14px;">Заполните реквизиты и нажмите "Сформировать квитанцию"</p>
+        <p style="color: #666; font-size: 14px;">Заполните данные плательщика и нажмите "Сформировать квитанцию"</p>
         
         <h3 style="color: #4CAF50;">Реквизиты получателя</h3>
         <label>Наименование получателя:</label>
-        <input type="text" id="recipientName" value='ООО "АВТОШКОЛА № 1"'>
+        <input type="text" id="recipientName" value='ООО АВТОШКОЛА 1' readonly>
+        
         <label>ИНН:</label>
-        <input type="text" id="inn" value="2312137727">
+        <input type="text" id="inn" value="2312137727" readonly>
+        
         <label>КПП:</label>
-        <input type="text" id="kpp" value="231201001">
+        <input type="text" id="kpp" value="231201001" readonly>
+        
         <label>Р/С:</label>
-        <input type="text" id="rs" value="40702810530000120382">
+        <input type="text" id="rs" value="40702810530000120382" readonly>
+        
         <label>Наименование банка:</label>
-        <input type="text" id="bankName" value="КРАСНОДАРСКОЕ ОТДЕЛЕНИЕ N8619 ПАО СБЕРБАНК">
-        <small style="color: #666;">Рекомендуется краткое название</small>
+        <input type="text" id="bankName" value="ПАО СБЕРБАНК" readonly>
+        
         <label>БИК:</label>
-        <input type="text" id="bik" value="040349602">
+        <input type="text" id="bik" value="040349602" readonly>
+        
         <label>К/С:</label>
-        <input type="text" id="ks" value="30101810100000000602">
+        <input type="text" id="ks" value="30101810100000000602" readonly>
 
         <h3 style="color: #4CAF50;">Данные плательщика</h3>
         <label>Фамилия:</label>
@@ -68,7 +247,7 @@
         <input type="text" id="purpose" placeholder="Оплата за обучение">
         <label>Сумма:</label>
         <div style="display: flex; gap: 10px;">
-            <input type="number" id="amountRub" value="5000">
+            <input type="number" id="amountRub" placeholder="97000">
             <input type="number" id="amountKop" value="00">
         </div>
 
@@ -81,50 +260,77 @@
             <button onclick="document.getElementById('receipt-preview').style.display='none'" style="background: #f44336;">❌ Закрыть</button>
         </div>
 
-        <div id="qrcode"></div>
-        <p class="qr-instruction">💳 Отсканируйте QR-код для оплаты через мобильный банк</p>
-
-        <table>
-            <tr><td colspan="2"><strong style="font-size: 16px;"><span id="out-recipientName"></span></strong><br><small>(Получатель)</small></td></tr>
-            <tr><td>ИНН:</td><td><span id="out-inn"></span></td></tr>
-            <tr><td>КПП:</td><td><span id="out-kpp"></span></td></tr>
-            <tr><td>Р/С:</td><td><span id="out-rs"></span></td></tr>
-            <tr><td>Банк:</td><td><span id="out-bankName"></span></td></tr>
-            <tr><td>БИК:</td><td><span id="out-bik"></span></td></tr>
-            <tr><td>К/С:</td><td><span id="out-ks"></span></td></tr>
-            <tr><td>Плательщик:</td><td><span id="out-payer"></span></td></tr>
-            <tr><td>Назначение:</td><td><span id="out-purpose"></span></td></tr>
-            <tr><td>Сумма:</td><td><strong><span id="out-amount-text"></span></strong></td></tr>
-            <tr><td colspan="2" style="padding-top: 40px; height: 60px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Подпись: _________</span>
-                    <span>Дата: ___________</span>
-                </div>
-            </td></tr>
-        </table>
-        <div class="bank-marks">Отметки банка</div>
+        <div class="receipt-content">
+            <div class="receipt-main">
+                <table>
+                    <tr>
+                        <td colspan="2">
+                            <strong style="font-size: 15px;"><span id="out-recipientName"></span></strong>
+                            <br><small>(Получатель)</small>
+                        </td>
+                    </tr>
+                    <tr><td>ИНН:</td><td><span id="out-inn"></span></td></tr>
+                    <tr><td>КПП:</td><td><span id="out-kpp"></span></td></tr>
+                    <tr><td>Р/С:</td><td><span id="out-rs"></span></td></tr>
+                    <tr><td>Банк:</td><td><span id="out-bankName"></span></td></tr>
+                    <tr><td>БИК:</td><td><span id="out-bik"></span></td></tr>
+                    <tr><td>К/С:</td><td><span id="out-ks"></span></td></tr>
+                    <tr><td>Плательщик:</td><td><span id="out-payer"></span></td></tr>
+                    <tr><td>Назначение:</td><td><span id="out-purpose"></span></td></tr>
+                    <tr><td>Сумма:</td><td><strong><span id="out-amount-text"></span></strong></td></tr>
+                    <tr>
+                        <td colspan="2" style="padding-top: 25px; height: 50px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                <span>Подпись: _________</span>
+                                <span>Дата: ___________</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <div class="bank-marks">Отметки банка</div>
+            </div>
+            
+            <div class="receipt-qr">
+                <div id="qrcode"></div>
+                <p class="qr-instruction">💳 Отсканируйте QR-код для оплаты через мобильный банк</p>
+            </div>
+        </div>
     </div>
 
     <script>
+        function cleanText(text) {
+            if (!text) return '';
+            let cleaned = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            cleaned = cleaned
+                .replace(/"/g, '')
+                .replace(/'/g, '')
+                .replace(/№/g, 'N')
+                .replace(/«/g, '')
+                .replace(/»/g, '')
+                .replace(/–/g, '-')
+                .replace(/—/g, '-')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return cleaned;
+        }
+
         function generateReceipt() {
-            // 1. Получаем данные
-            const recipientName = document.getElementById('recipientName').value.trim();
-            const inn = document.getElementById('inn').value.trim();
-            const kpp = document.getElementById('kpp').value.trim();
-            const rs = document.getElementById('rs').value.trim();
-            const bankName = document.getElementById('bankName').value.trim();
-            const bik = document.getElementById('bik').value.trim();
-            const ks = document.getElementById('ks').value.trim();
+            const recipientName = cleanText(document.getElementById('recipientName').value);
+            const inn = cleanText(document.getElementById('inn').value);
+            const kpp = cleanText(document.getElementById('kpp').value);
+            const rs = cleanText(document.getElementById('rs').value);
+            const bankName = cleanText(document.getElementById('bankName').value);
+            const bik = cleanText(document.getElementById('bik').value);
+            const ks = cleanText(document.getElementById('ks').value);
             
-            const payerSurname = document.getElementById('payerSurname').value.trim();
-            const payerName = document.getElementById('payerName').value.trim();
-            const payerPatronymic = document.getElementById('payerPatronymic').value.trim();
-            const purpose = document.getElementById('purpose').value.trim();
+            const payerSurname = cleanText(document.getElementById('payerSurname').value);
+            const payerName = cleanText(document.getElementById('payerName').value);
+            const payerPatronymic = cleanText(document.getElementById('payerPatronymic').value);
+            const purpose = cleanText(document.getElementById('purpose').value);
             
             const amountRub = document.getElementById('amountRub').value || '0';
             const amountKop = (document.getElementById('amountKop').value || '00').padStart(2, '0');
 
-            // 2. Заполняем шаблон
             document.getElementById('out-recipientName').textContent = recipientName;
             document.getElementById('out-inn').textContent = inn;
             document.getElementById('out-kpp').textContent = kpp;
@@ -138,46 +344,34 @@
             document.getElementById('out-purpose').textContent = purpose || 'Без назначения';
             document.getElementById('out-amount-text').textContent = `${amountRub} руб. ${amountKop} коп.`;
 
-            // 3. Формируем строку для QR-кода по стандарту ГОСТ Р 56042-2014
-            // Используем формат, совместимый со всеми российскими банками
             const amountTotal = amountRub + amountKop;
-            
-            // ВАЖНО: Формат должен быть точно таким, как требуют банки
             const qrData = `ST00012|Name=${recipientName}|PersonalAcc=${rs}|BankName=${bankName}|BIC=${bik}|CorrespAcc=${ks}|INN=${inn}|KPP=${kpp}|PayeeINN=${inn}|Purpose=${purpose}|Sum=${amountTotal}`;
 
-            console.log("Длина строки:", qrData.length);
-            console.log("Строка для QR:", qrData);
+            console.log("✅ Строка для QR:", qrData);
 
             if (qrData.length > 2000) {
-                alert('Ошибка: Данные слишком длинные для QR-кода!');
+                alert('Ошибка: Данные слишком длинные!');
                 return;
             }
 
-            // 4. Генерируем QR-код
             try {
                 document.getElementById('qrcode').innerHTML = "";
-                
-                // Создаем QR-код с автоматическим выбором версии
-                const typeNumber = 0; // 0 = автоматический выбор
-                const errorCorrectionLevel = 'M'; // Medium уровень коррекции
+                const typeNumber = 0;
+                const errorCorrectionLevel = 'M';
                 const qr = qrcode(typeNumber, errorCorrectionLevel);
                 qr.addData(qrData);
                 qr.make();
                 
-                // Вставляем QR-код в DOM с оптимальными размерами
-                // Первый параметр - размер модуля в пикселях, второй - отступ
-                document.getElementById('qrcode').innerHTML = qr.createImgTag(6, 2);
+                document.getElementById('qrcode').innerHTML = qr.createImgTag(5, 1);
                 
-                // Показываем результат
                 document.getElementById('receipt-preview').style.display = 'block';
                 document.getElementById('receipt-preview').scrollIntoView({behavior: "smooth"});
                 
-                console.log("✅ QR-код успешно создан!");
-                console.log("📱 Протестируйте QR-код в мобильном банке");
+                console.log("✅ Квитанция готова к печати!");
                 
             } catch (error) {
-                console.error("Ошибка создания QR:", error);
-                alert('Не удалось создать QR-код. Проверьте консоль (F12).');
+                console.error("❌ Ошибка создания QR:", error);
+                alert('Не удалось создать QR-код.');
             }
         }
     </script>
