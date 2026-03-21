@@ -1,143 +1,185 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Сервис подготовки квитанций</title>
+    <!-- Подключаем библиотеку для генерации QR-кодов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        label { display: block; margin-top: 10px; }
-        input, textarea { width: 100%; max-width: 500px; padding: 5px; }
-        .pdf-btn { margin-top: 20px; cursor: pointer; color: blue; text-decoration: underline; }
-        #qr-container { margin-top: 20px; }
+        /* Стили для формы ввода данных */
+        body { font-family: sans-serif; padding: 20px; }
+        .form-container { max-width: 800px; margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 5px; box-sizing: border-box; }
+        .bank-details input { background-color: #e6ffe6; }
+        button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+
+        /* Стили для самой квитанции. Они нужны только для печати/PDF */
+        @media print {
+            body * { visibility: hidden; } /* Скрываем всё на странице */
+            #receipt-template, #receipt-template * {
+                visibility: visible; /* Показываем только шаблон квитанции */
+            }
+            #receipt-template {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print { display: none; } /* Скрываем элементы с этим классом при печати */
+        }
+
+        /* Стили для отображения квитанции на экране (перед печатью) */
+        #receipt-preview {
+            display: none; /* Скрыт по умолчанию */
+            border: 1px solid #000;
+            padding: 20px;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        #receipt-preview table { width: 100%; border-collapse: collapse; }
+        #receipt-preview td { padding: 5px; border-bottom: 1px solid #ccc; }
+        #qrcode { margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h2>Сервис подготовки квитанций - 11 дней.</h2>
 
-    <label>Наименование получателя платежа:</label>
-    <input type="text" id="recipientName" value='ООО "АВТОШКОЛА № 1"' />
+    <!-- === ЧАСТЬ 1: ФОРМА ДЛЯ ЗАПОЛНЕНИЯ === -->
+    <div class="form-container">
+        <h2>Сервис подготовки квитанций</h2>
+        
+        <h3>Реквизиты получателя</h3>
+        <label>Наименование получателя платежа:</label>
+        <input type="text" id="recipientName" value='ООО "АВТОШКОЛА № 1"'>
 
-    <label>Р/С:</label>
-    <input type="text" id="accountNumber" value="40702810530000120382" />
+        <label>ИНН:</label>
+        <input type="text" id="inn" value="2312137727">
 
-    <label>Наименование банка:</label>
-    <input type="text" id="bankName" value="КРАСНОДАРСКОЕ ОТДЕЛЕНИЕ N8619 ПАО СБЕРБАНК" />
+        <label>КПП:</label>
+        <input type="text" id="kpp" value="231201001">
 
-    <label>БИК:</label>
-    <input type="text" id="bik" value="040349602" />
+        <label>Р/С:</label>
+        <input type="text" id="rs" value="40702810530000120382">
 
-    <label>К/С:</label>
-    <input type="text" id="correspondentAccount" value="30101810100000000602" />
+        <label>Наименование банка:</label>
+        <input type="text" id="bankName" value="КРАСНОДАРСКОЕ ОТДЕЛЕНИЕ N8619 ПАО СБЕРБАНК">
 
-    <label>КПП получателя платежа:</label>
-    <input type="text" id="kpp" value="231201001" />
+        <label>БИК:</label>
+        <input type="text" id="bik" value="040349602">
 
-    <label>ИНН:</label>
-    <input type="text" id="inn" value="2312137727" />
+        <label>К/С:</label>
+        <input type="text" id="ks" value="30101810100000000602">
 
-    <hr>
+        <h3>Данные плательщика</h3>
+        <label>Фамилия:</label>
+        <input type="text" id="payerSurname">
+        <label>Имя:</label>
+        <input type="text" id="payerName">
+        <label>Отчество:</label>
+        <input type="text" id="payerPatronymic">
+        
+        <label>Назначение платежа:</label>
+        <input type="text" id="purpose" placeholder="Например: Оплата за обучение">
 
-    <label>Фамилия :</label>
-    <input type="text" id="lastName" />
+        <label>Сумма платежа:</label>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="amountRub" placeholder="руб." style="width: 150px;">
+            <input type="number" id="amountKop" placeholder="коп." style="width: 80px;">
+        </div>
 
-    <label>Имя :</label>
-    <input type="text" id="firstName" />
+        <button onclick="generateReceipt()">Сформировать квитанцию</button>
+    </div>
 
-    <label>Отчество :</label>
-    <input type="text" id="middleName" />
+    <!-- === ЧАСТЬ 2: ШАБЛОН КВИТАНЦИИ (скрыт до нажатия кнопки) === -->
+    <div id="receipt-preview">
+        <div class="no-print" style="text-align: right; margin-bottom: 10px;">
+            <button onclick="window.print()">Печать / Сохранить в PDF</button>
+            <button onclick="document.getElementById('receipt-preview').style.display='none'">Закрыть</button>
+        </div>
 
-    <label>Назначение :</label>
-    <textarea id="purpose"></textarea>
+        <div id="qrcode"></div>
+        <p style="font-size: 12px; color: #666; max-width: 300px;">
+            Оплатите счет, отсканировав код через платежный терминал, мобильное приложение Онлайн Банка на смартфоне или передав документ сотруднику банка
+        </p>
 
-    <label>Сумма платежа:</label>
-    <input type="number" id="amountRub" placeholder="руб." style="width: 100px;" />
-    <input type="number" id="amountKop" placeholder="коп." style="width: 60px;" />
+        <table>
+            <tr>
+                <td colspan="2"><strong><span id="out-recipientName"></span></strong><br><small>(Организация получатель платежа)</small></td>
+            </tr>
+            <tr><td>ИНН:</td><td><span id="out-inn"></span></td></tr>
+            <tr><td>КПП:</td><td><span id="out-kpp"></span></td></tr>
+            <tr><td>Р/С:</td><td><span id="out-rs"></span></td></tr>
+            <tr>
+                <td>Наименование банка:</td>
+                <td><span id="out-bankName"></span></td>
+            </tr>
+            <tr><td>БИК:</td><td><span id="out-bik"></span></td></tr>
+            <tr><td>К/С:</td><td><span id="out-ks"></span></td></tr>
+            <tr><td>Плательщик:</td><td><span id="out-payer"></span></td></tr>
+            <tr><td>Назначение:</td><td><span id="out-purpose"></span></td></tr>
+            <tr>
+                <td>Сумма</td>
+                <td>
+                    ________ руб. ___ коп.
+                    <small>(<span id="out-amount-text"></span>)</small>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="padding-top: 30px;">
+                    Подпись: ____________________ Дата: "___" ___________ 20__ г.
+                </td>
+            </tr>
+        </table>
+        <div style="margin-top: 50px; font-size: 12px; color: #999;">
+            Отметки банка
+        </div>
+    </div>
 
-    <div class="pdf-btn" onclick="generatePDF()">скачать инструкцию</div>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" width="50" />
-    <p>Нажмите кнопку выше, чтобы скачать в PDF</p>
-
-    <div id="qr-container"></div>
-
-    <!-- Подключаем библиотеки -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    <!-- === ЧАСТЬ 3: JAVASCRIPT ЛОГИКА === -->
     <script>
-        function generateQRCode() {
+        function generateReceipt() {
+            // 1. Получаем данные из полей формы
+            const recipientName = document.getElementById('recipientName').value;
             const inn = document.getElementById('inn').value;
             const kpp = document.getElementById('kpp').value;
-            const account = document.getElementById('accountNumber').value;
-            const bik = document.getElementById('bik').value;
+            const rs = document.getElementById('rs').value;
             const bankName = document.getElementById('bankName').value;
-            const recipientName = document.getElementById('recipientName').value;
-            const purpose = document.getElementById('purpose').value || '';
-            const rub = parseFloat(document.getElementById('amountRub').value) || 0;
-            const kop = parseFloat(document.getElementById('amountKop').value) || 0;
-            const totalAmount = (rub * 100 + kop).toFixed(0); // в копейках
+            const bik = document.getElementById('bik').value;
+            const ks = document.getElementById('ks').value;
+            
+            const payerSurname = document.getElementById('payerSurname').value;
+            const payerName = document.getElementById('payerName').value;
+            const payerPatronymic = document.getElementById('payerPatronymic').value;
+            const purpose = document.getElementById('purpose').value;
+            
+            const amountRub = document.getElementById('amountRub').value || '0';
+            const amountKop = document.getElementById('amountKop').value || '00';
 
-            // Формируем строку для QR по ГОСТ Р 56042-2014 (упрощённый вариант для СБП)
-            // Пример формата: ST00012|Name=...|PersonalAcc=...|BankName=...|BIC=...|CorrespAcc=...|PayeeINN=...|KPP=...|Purpose=...|Sum=...
-            let qrData = `ST00012|Name=${encodeURIComponent(recipientName)}|PersonalAcc=${account}|BankName=${encodeURIComponent(bankName)}|BIC=${bik}|CorrespAcc=${document.getElementById('correspondentAccount').value}|PayeeINN=${inn}|KPP=${kpp}|Purpose=${encodeURIComponent(purpose)}|Sum=${totalAmount}`;
+            // 2. Заполняем шаблон квитанции этими данными
+            document.getElementById('out-recipientName').textContent = recipientName;
+            document.getElementById('out-inn').textContent = inn;
+            document.getElementById('out-kpp').textContent = kpp;
+            document.getElementById('out-rs').textContent = rs;
+            document.getElementById('out-bankName').textContent = bankName;
+            document.getElementById('out-bik').textContent = bik;
+            document.getElementById('out-ks').textContent = ks;
+            
+            const fullName = `${payerSurname} ${payerName} ${payerPatronymic}`.trim();
+            document.getElementById('out-payer').textContent = fullName || '____________________';
+            document.getElementById('out-purpose').textContent = purpose;
+            document.getElementById('out-amount-text').textContent = `${amountRub} руб. ${amountKop} коп.`;
 
-            // Очищаем контейнер и создаём новый QR
-            document.getElementById('qr-container').innerHTML = '';
-            new QRCode(document.getElementById('qr-container'), {
-                text: qrData,
-                width: 128,
-                height: 128
-            });
-        }
+            // 3. Формируем строку для QR-кода по стандарту ГОСТ Р 56042-2014
+            // Это самый важный шаг для оплаты через банк.
+            const qrData = `ST00012|Name=${recipientName}|PersonalAcc=${rs}|BankName=${bankName}|BIC=${bik}|CorrespAcc=${ks}|INN=${inn}|KPP=${kpp}|PayeeINN=${inn}|Purpose=${purpose}|Sum=${amountRub}${amountKop.padStart(2, '0')}`;
+            
+	
 
-        async function generatePDF() {
-            // Сначала генерируем QR
-            generateQRCode();
-
-            // Ждём немного, чтобы QR отрисовался
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Добавляем заголовок
-            doc.setFontSize(14);
-            doc.text('ООО "АВТОШКОЛА № 1"', 20, 20);
-            doc.setFontSize(10);
-            doc.text('(Организация получатель платежа)', 20, 25);
-
-            // Заполняем данные
-            const fields = [
-                { label: 'ИНН:', value: document.getElementById('inn').value },
-                { label: 'КПП:', value: document.getElementById('kpp').value },
-                { label: 'Р/С:', value: document.getElementById('accountNumber').value },
-                { label: 'Наименование банка:', value: document.getElementById('bankName').value },
-                { label: 'БИК:', value: document.getElementById('bik').value },
-                { label: 'К/С:', value: document.getElementById('correspondentAccount').value },
-                { label: 'Плательщик:', value: `${document.getElementById('lastName').value} ${document.getElementById('firstName').value} ${document.getElementById('middleName').value}` },
-                { label: 'Назначение:', value: document.getElementById('purpose').value },
-                { label: 'Сумма:', value: `${document.getElementById('amountRub').value} руб. ${document.getElementById('amountKop').value} коп.` }
-            ];
-
-            let y = 35;
-            fields.forEach(field => {
-                doc.text(`${field.label} ${field.value}`, 20, y);
-                y += 7;
-            });
-
-            // Добавляем QR-код
-            const qrCanvas = document.querySelector('#qr-container canvas');
-            if (qrCanvas) {
-                const imgData = qrCanvas.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 20, y + 10, 30, 30);
-            }
-
-            // Дата и подпись
-            y += 50;
-            doc.text('Подпись: _________________________ Дата: "__" ________ 20__ г.', 20, y);
-
-            // Сохраняем PDF
-            doc.save('квитанция.pdf');
+            // 4. Показываем готовую квитанцию
+            document.getElementById('receipt-preview').style.display = 'block';
+            
+            // Прокручиваем страницу к квитанции
+            document.getElementById('receipt-preview').scrollIntoView({behavior: "smooth"});
         }
     </script>
 </body>
