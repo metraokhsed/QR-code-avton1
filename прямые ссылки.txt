@@ -5,3 +5,5 @@ https://raw.githubusercontent.com/metraokhsed/QR-code-avton1/main/info_to_tax_1_
 https://raw.githubusercontent.com/metraokhsed/QR-code-avton1/main/info_to_tax_2_L.pdf
 
 https://raw.githubusercontent.com/metraokhsed/QR-code-avton1/main/couriernew.ttf
+
+https://raw.githubusercontent.com/metraokhsed/QR-code-avton1/main/timesnewromanpsmt.ttf
